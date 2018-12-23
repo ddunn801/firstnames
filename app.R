@@ -18,18 +18,7 @@ ui <- fluidPage(
       textInput("text1", label = h5("Enter name (or multiple names separated by a comma"), 
                 value = "Daniel"),
       fileInput("file1", label = h5("Or, upload a file with a list of names to get the group prediction."),
-                accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
-      checkboxInput("header", "Header", FALSE),
-      radioButtons("sep", "Separator",
-                   c(Comma = ",",
-                     Semicolon = ";",
-                     Tab = "\t"),
-                   ","),
-      radioButtons("quote", "Quote",
-                   c(None = "",
-                     "Double Quote" = '"',
-                     "Single Quote" = "'"),
-                   '"')
+                accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
     ),
     mainPanel(
       plotOutput("AgeSexPlot")
@@ -49,7 +38,7 @@ server <- function(input, output) {
       d1 <- gsub(", ",",", inText())
       d1 <- data.frame(strsplit(d1, ","))
     } else if(inRadio() == 2 & !is.null(inFile()$datapath)){
-      d1 <- read.table(inFile()$datapath, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+      d1 <- read.table(inFile()$datapath, header = FALSE, sep = ",", stringsAsFactors = FALSE)
     } else (
       d1 <- defnams
     )
@@ -71,10 +60,10 @@ server <- function(input, output) {
     s1$sex <- ordered(s1$sex, levels = c("Female", "Male"))
     s1
   })
-  output$AgeSexPlot <- renderPlot({    
+  output$AgeSexPlot <- renderPlot({
     ggplot(data = sdf(), aes(x = age, y = n, group = sex, fill = sex)) + 
       theme_wsj(color = "gray") + 
-      scale_fill_wsj("colors6") + 
+      scale_fill_manual(values = c("pink", "blue"), drop = FALSE) + 
       geom_bar(stat = "identity", width = 1.0) + 
       theme(legend.position = "none") + 
       theme(axis.title = element_text(size = 12)) + 
