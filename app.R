@@ -8,6 +8,7 @@ library("ggplot2")
 
 
 # Define UI ---------------------------------------------------------------
+default_name <- "Daniel"
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
@@ -15,8 +16,8 @@ ui <- fluidPage(
                    choices = list("Text Box" = 1,
                                   "Uploaded File" = 2), 
                    selected = 1),
-      textInput("text1", label = h5("Enter name (or multiple names separated by a comma"), 
-                value = "Daniel"),
+      textInput("text1", label = h5("Enter name (or multiple names separated by a comma)"), 
+                value = default_name),
       fileInput("file1", label = h5("Or, upload a file with a list of names to get the group prediction."),
                 accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
     ),
@@ -32,7 +33,6 @@ server <- function(input, output) {
   inRadio <- reactive({input$radio1})
   inFile <- reactive({input$file1})
   inText <- reactive({input$text1})
-  defnams <- data.frame(c("Greg", "Marsha", "Peter", "Jan", "Bobby", "Cindy", "Mike", "Carol", "Alice"))
   sdf <- reactive({
     if(inRadio() == 1) {
       d1 <- gsub(", ",",", inText())
@@ -40,20 +40,24 @@ server <- function(input, output) {
     } else if(inRadio() == 2 & !is.null(inFile()$datapath)){
       d1 <- read.table(inFile()$datapath, header = FALSE, sep = ",", stringsAsFactors = FALSE)
     } else (
-      d1 <- defnams
+      d1 <- default_name
     )
     
     names(d1) <- "firstname"
     d1$firstname <- tolower(d1$firstname)
     
     bn <- babynames
-    bn <- bn[bn$year >= 1934,]
+    bn_start <- 1934
+    bn <- bn[bn$year >= bn_start,]
     colnames(bn)[colnames(bn) %in% "name"] <- "firstname"
     bn$firstname <- tolower(bn$firstname)
     bn$sex[bn$sex == "F"] <- "Female"
     bn$sex[bn$sex == "M"] <- "Male"
     
     s1 <- merge(x = d1, y = bn, by = "firstname")
+    if(nrow(s1) == 0) s1 <- rbind(s1, data.frame(firstname = d1$firstname, 
+                                                 year = bn_start, sex = "Female", n = 0, prop = 0, 
+                                                 stringsAsFactors = FALSE))
     s1 <- s1[!is.na(s1$n),]
     s1 <- aggregate(formula = n ~ year + sex, data = s1, FUN = sum, na.rm = TRUE)
     s1$age <- as.numeric(format(Sys.Date(), "%Y")) - s1$year
